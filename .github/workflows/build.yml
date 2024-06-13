@@ -88,14 +88,19 @@ jobs:
         run: |
           cd ${{ env.NANOEM_BUILD_ARTIFACT_DIRECTORY }}
           ctest
+      - name: check directories
+        run: |
+          cd ${{ github.workspace }}/out
+          ls -lah
+          tree
       - name: upload artifact
         uses: actions/upload-artifact@v4
         with:
-          path: ${{ env.NANOEM_BUILD_ARTIFACT_DIRECTORY }}
+          path: ${{ github.workspace }}/out
           name: nanoem-${{ github.run_attempt }}
       - name: compress build
         run: |
-          zip -r nanoem.zip ${{ env.NANOEM_BUILD_ARTIFACT_DIRECTORY }}
+          zip -r nanoem.zip ${{ github.workspace }}/out
       - name: release build
         uses: softprops/action-gh-release@v2
         with:
