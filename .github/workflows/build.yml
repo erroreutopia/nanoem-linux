@@ -1,0 +1,88 @@
+# copied from https://github.com/hkrn/nanoem/blob/main/.github/workflows/main.yml
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+env:
+  FFMPEG_VERSION_TAG: n4.4.1
+  FX9_BUILD_DEPENDENCIES_DIRECTORY: ${{ github.workspace }}/out/dependencies
+  GLFW_VERSION_TAG: 3.3.8
+  ICU_VERSION_TAG: release-71-1
+  NANOEM_BUILD_DEPENDENCIES_DIRECTORY: ${{ github.workspace }}/out/dependencies
+  NANOEM_BUILD_ARTIFACT_DIRECTORY: ${{ github.workspace }}/out/core
+  NANOEM_RUST_DIRECTORY: ${{ github.workspace }}/rust
+
+jobs:
+  build-linux:
+    runs-on: ubuntu-latest
+    # libc++/libc++abi are not prerequsite libraries but specifies to test CXXFLAGS/LDFLAGS are functional
+    env:
+      CC: clang
+      CXX: clang++
+      CXXFLAGS: -stdlib=libc++
+      LDFLAGS: -lc++abi
+      GIT_CLONE_PROTECTION_ACTIVE: false
+    steps:
+      - name: checkout
+        uses: actions/checkout@v4
+        with:
+          repository: 'hkrn/nanoem'
+          submodules: recursive
+      # Assumes clang/cmake/libc++/libc++abi are installed on GitHub Actions Runner
+      - name: setup prerequisite packages
+        run: |
+          sudo apt-get update && sudo apt-get install -y \
+            libasound-dev \
+            libgtk-3-dev \
+            libglu1-mesa-dev \
+            ninja-build \
+            xorg-dev \
+            libxi-dev \
+            libxcursor-dev
+      - name: checkout ffmpeg
+        run: git clone --depth=1 --branch=${{ env.FFMPEG_VERSION_TAG }} https://github.com/ffmpeg/ffmpeg.git dependencies/ffmpeg
+      - name: checkout glfw
+        run: git clone --depth=1 --branch=${{ env.GLFW_VERSION_TAG }} https://github.com/glfw/glfw.git dependencies/glfw
+      - name: checkout ICU
+        run: git clone --depth=1 --branch=${{ env.ICU_VERSION_TAG }} https://github.com/unicode-org/icu.git dependencies/icu
+      - name: build all dependencies of nanoem
+        run: cmake -DCONFIG=release -P ${{ github.workspace }}/scripts/build.cmake
+        env:
+          NANOEM_ENABLE_BUILD_FFMPEG: 1
+          NANOEM_ENABLE_BUILD_GLFW: 1
+          NANOEM_ENABLE_BUILD_ICU4C: 1
+          NANOEM_ENABLE_BUILD_MIMALLOC: 1
+          NANOEM_TARGET_ARCHITECTURES: x86_64
+          NANOEM_TARGET_CONFIGURATIONS: "debug;release"
+          NANOEM_TARGET_COMPILER: clang
+      - name: build nanoem itself
+        run: |
+          mkdir -p ${{ env.NANOEM_BUILD_ARTIFACT_DIRECTORY }}
+          cd ${{ env.NANOEM_BUILD_ARTIFACT_DIRECTORY }}
+          cmake \
+            -DCMAKE_INSTALL_PREFIX=${{ env.NANOEM_BUILD_ARTIFACT_DIRECTORY }}/install-root \
+            -DFX9_ENABLE_OPTIMIZER=OFF \
+            -DNANOEM_ENABLE_BULLET=ON \
+            -DNANOEM_ENABLE_GLFW=ON \
+            -DNANOEM_ENABLE_ICU=ON \
+            -DNANOEM_ENABLE_IMGUI_FILE_DIALOG=ON \
+            -DNANOEM_ENABLE_MIMALLOC=ON \
+            -DNANOEM_ENABLE_NMD=ON \
+            -DNANOEM_ENABLE_TBB=OFF \
+            -DNANOEM_ENABLE_TEST=ON \
+            -DNANOEM_INSTALL_EFFECT_PLUGIN=ON \
+            -DNANOEM_INSTALL_FFMPEG_PLUGIN=ON \
+            -DNANOEM_INSTALL_GIF_PLUGIN=OFF \
+            -DNANOEM_INSTALL_LSMASH_PLUGIN=ON \
+            -DNANOEM_TARGET_COMPILER=clang \
+            -GNinja \
+            ../..
+          cmake --build . --config release
+      - name: test nanoem's unit tests
+        run: |
+          cd ${{ env.NANOEM_BUILD_ARTIFACT_DIRECTORY }}
+          ctest
