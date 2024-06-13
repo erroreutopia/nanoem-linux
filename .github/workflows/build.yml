@@ -18,7 +18,7 @@ env:
 
 jobs:
   build-linux:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     # libc++/libc++abi are not prerequsite libraries but specifies to test CXXFLAGS/LDFLAGS are functional
     env:
       CC: clang
@@ -86,3 +86,8 @@ jobs:
         run: |
           cd ${{ env.NANOEM_BUILD_ARTIFACT_DIRECTORY }}
           ctest
+      - name: upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          path: ${{ env.NANOEM_BUILD_ARTIFACT_DIRECTORY }}
+          name: nanoem-${{ github.run_attempt }}
