@@ -19,6 +19,8 @@ env:
 jobs:
   build-linux:
     runs-on: ubuntu-22.04
+    permissions:
+      contents: write
     # libc++/libc++abi are not prerequsite libraries but specifies to test CXXFLAGS/LDFLAGS are functional
     env:
       CC: clang
@@ -91,3 +93,11 @@ jobs:
         with:
           path: ${{ env.NANOEM_BUILD_ARTIFACT_DIRECTORY }}
           name: nanoem-${{ github.run_attempt }}
+      - name: compress build
+        run: |
+          zip nanoem.zip ${{ env.NANOEM_BUILD_ARTIFACT_DIRECTORY }}
+      - name: release build
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            nanoem.zip
