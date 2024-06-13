@@ -95,7 +95,7 @@ jobs:
           name: nanoem-${{ github.run_attempt }}
       - name: compress build
         run: |
-          zip nanoem.zip ${{ env.NANOEM_BUILD_ARTIFACT_DIRECTORY }}
+          zip -r nanoem.zip ${{ env.NANOEM_BUILD_ARTIFACT_DIRECTORY }}
       - name: release build
         uses: softprops/action-gh-release@v2
         with:
