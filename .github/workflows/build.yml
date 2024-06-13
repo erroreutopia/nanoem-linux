@@ -1,11 +1,11 @@
 # copied from https://github.com/hkrn/nanoem/blob/main/.github/workflows/main.yml
-name: CI
+name: Build
 
 on:
   push:
-    branches: [main]
+    branches: [master]
   pull_request:
-    branches: [main]
+    branches: [master]
 
 env:
   FFMPEG_VERSION_TAG: n4.4.1
