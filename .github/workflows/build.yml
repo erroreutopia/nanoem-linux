@@ -99,5 +99,7 @@ jobs:
       - name: release build
         uses: softprops/action-gh-release@v2
         with:
+          name: release
+          tag_name: release
           files: |
             nanoem.zip
